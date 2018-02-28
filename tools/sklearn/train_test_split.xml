@@ -1,0 +1,62 @@
+<tool id="train_test_split" name="Split Training and Testing" version="0.1.0">
+    <description>sets</description>
+    <requirements>
+        <requirement type="package" version="0.22.0">pandas</requirement>
+        <requirement type="package" version="0.19.1">scikit-learn</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python "$train_test_split_script" "$inputs"
+    ]]></command>
+    
+    <configfiles>
+        <inputs name="inputs"/>                
+        <configfile name="train_test_split_script">
+<![CDATA[
+import sys
+import json
+import pandas
+from sklearn.model_selection import train_test_split
+
+input_json_path = sys.argv[1]
+params = json.load(open(input_json_path, "r"))
+
+df = pandas.read_csv("$input", sep="\t")
+options=params["options"]
+
+labels = df[df.columns[$col_label-1]]
+features= df.drop(df.columns[$col_label - 1], axis = 1)
+
+train_features, test_features, train_labels, test_labels = train_test_split(features, labels, **options)
+
+train_features.to_csv(path_or_buf = "$output_train_features", sep="\t", index=False)
+test_features.to_csv(path_or_buf = "$output_test_features", sep="\t", index=False)
+pandas.DataFrame(train_labels).to_csv(path_or_buf = "$output_train_labels", sep="\t", index=False)
+pandas.DataFrame(test_labels).to_csv(path_or_buf = "$output_test_labels", sep="\t", index=False)
+
+]]>
+        </configfile>
+    </configfiles>
+    <inputs>
+        <param name="input" type="data" format="tabular" label="Source file"/>
+        <param name="col_label" multiple="@MULTIPLE2@" type="data_column" data_ref="input" label="Select label column:"/>
+        <section name="options" title="Options" expanded="True">
+            <param argument="test_size" type="float" optional="True" value="0.25" label="Test size:"/>
+            <param argument="train_size" type="float" optional="True" value="" label="Train size:"/>
+            <param argument="random_state" type="integer" optional="True" value="" label="Random seed number:"/>
+            <param argument="shuffle" type="boolean" optional="True" truevalue="booltrue" falsevalue="boolfalse" checked="True" label="Shuffle:" help="Whether or not to shuffle the data before splitting. If shuffle=False then stratify must be None."/>
+            <param argument="stratify" type="integer" optional="True" value="" label="Stratify:"/>
+        </section>    
+    </inputs>
+    <outputs>
+        <data format="tabular" name="output_train_features" />
+        <data format="tabular" name="output_test_features" />
+        <data format="tabular" name="output_train_labels" />
+        <data format="tabular" name="output_test_labels" />
+    </outputs>
+    <help><![CDATA[
+Input: a tabular file containing both features and labels. Header is allowed.
+
+Output: two tabular files containing training and testing set, respectively.
+
+    ]]></help>
+</tool>

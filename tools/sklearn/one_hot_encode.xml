@@ -1,0 +1,30 @@
+<tool id="one_hot_encode" name="One-hot encode" version="0.1.0">
+    <description>data using pandas get_dummies</description>
+    <requirements>
+        <requirement type="package" version="0.22.0">pandas</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python "$one_hot_encode_script" "$input"
+    ]]></command>
+    <inputs>
+        <param name="input" type="data" label="Source file"/>
+    </inputs>
+    <configfiles>
+        <configfile name="one_hot_encode_script">
+<![CDATA[
+import pandas
+features = pandas.read_csv("$input")
+features = pandas.get_dummies(features)
+features.to_csv(path_or_buf = "$output", sep="\t", index=False)
+]]>
+        </configfile>
+    </configfiles>
+    <outputs>
+        <data format="tabular" name="output" />
+    </outputs>
+    <help><![CDATA[
+        INPUT: CSV file
+
+        OUTPUT: a tabular file after one-hot encoding
+    ]]></help>
+</tool>

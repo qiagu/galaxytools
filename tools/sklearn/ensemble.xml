@@ -33,14 +33,14 @@ input_type = params["selected_tasks"]["selected_algorithms"]["input_options"]["s
 if input_type=="tabular":
     col1 = params["selected_tasks"]["selected_algorithms"]["input_options"]["col1"]
     col1 = list(map(lambda x: x - 1, col1))
-    f1 = pandas.read_csv("$selected_tasks.selected_algorithms.input_options.infile1", sep='\t', header=None, index_col=None, parse_dates=True, encoding=None, tupleize_cols=False )
+    f1 = pandas.read_csv("$selected_tasks.selected_algorithms.input_options.infile1", sep='\t', index_col=None, parse_dates=True, encoding=None, tupleize_cols=False )
     X = f1.iloc[:,col1].values
 else:
     X = mmread(open("$selected_tasks.selected_algorithms.input_options.infile1", 'r'))
 
 col2 = params["selected_tasks"]["selected_algorithms"]["input_options"]["col2"]
 col2 = list(map(lambda x: x - 1, col2))
-f2 = pandas.read_csv("$selected_tasks.selected_algorithms.input_options.infile2", sep='\t', header=None, index_col=None, parse_dates=True, encoding=None, tupleize_cols=False )
+f2 = pandas.read_csv("$selected_tasks.selected_algorithms.input_options.infile2", sep='\t', index_col=None, parse_dates=True, encoding=None, tupleize_cols=False )
 y = f2.iloc[:,col2].values
 
 my_class = getattr(sklearn.ensemble, algorithm)
@@ -50,13 +50,12 @@ pickle.dump(estimator,open("$outfile_fit", 'w+'), pickle.HIGHEST_PROTOCOL)
 
 #else:
 classifier_object = pickle.load(open("$selected_tasks.infile_model", 'r'))
-data = pandas.read_csv("$selected_tasks.infile_data", sep='\t', header=0, index_col=None, parse_dates=True, encoding=None, tupleize_cols=False )
+data = pandas.read_csv("$selected_tasks.infile_data", sep='\t', index_col=None, parse_dates=True, encoding=None, tupleize_cols=False )
 prediction = classifier_object.predict(data)
 prediction_df = pandas.DataFrame(prediction)
 res = pandas.concat([data, prediction_df], axis=1)
 res.to_csv(path_or_buf = "$outfile_predict", sep="\t", index=False)
 #end if
-
 ]]>
         </configfile>
     </configfiles>
@@ -149,7 +148,7 @@ res.to_csv(path_or_buf = "$outfile_predict", sep="\t", index=False)
             <param name="infile_model" value="rfc_model01" ftype="zip"/>
             <param name="infile_data" value="test.tabular" ftype="tabular"/>
             <param name="selected_task" value="load"/>
-            <output name="outfile_predict" file="rfc_result01" compare="sim_size" delta="500"/>
+            <output name="outfile_predict" file="rfc_result01"/>
         </test>
 
         <test>
@@ -166,7 +165,7 @@ res.to_csv(path_or_buf = "$outfile_predict", sep="\t", index=False)
             <param name="infile_model" value="rfr_model01" ftype="zip"/>
             <param name="infile_data" value="regression_test.tabular" ftype="tabular"/>
             <param name="selected_task" value="load"/>
-            <output name="outfile_predict" file="rfr_result01" compare="sim_size" delta="500"/>
+            <output name="outfile_predict" file="rfr_result01"/>
         </test>
     </tests>
     <help><![CDATA[
