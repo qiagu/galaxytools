@@ -1,0 +1,51 @@
+<tool id="estimate_baseline_pred" name="Estimate Baseline" version="0.1.0">
+    <description>for predictions</description>
+    <requirements>
+        <requirement type="package" version="0.22.0">pandas</requirement>
+        <requirement type="package" version="1.9.2">numpy</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python "$estimate_baseline_pred_script" "$inputs" "$output"
+    ]]></command>
+    
+    <configfiles>
+        <inputs name="inputs"/>                
+        <configfile name="estimate_baseline_pred_script">
+<![CDATA[
+import sys
+import pandas
+import numpy as np
+
+outfile = open(sys.argv[2], 'w')
+
+test_df = pandas.read_csv("$infile1", sep="\t")
+baseline_preds = test_df[test_df.columns[$col1 - 1]]
+
+test_labels_df = pandas.read_csv("$infile2", sep="\t")
+test_labels = test_labels_df[test_labels_df.columns[$col2 -1]]
+
+baseline_errors = abs(baseline_preds - test_labels)
+
+outfile.write("Average baseline error: %.2f" % np.mean(baseline_errors) )
+
+]]>
+        </configfile>
+    </configfiles>
+    <inputs>
+        <param name="infile1" type="data" format="tabular" label="Dataset containing baseline predictions:"/>
+        <param name="col1" multiple="False" type="data_column" data_ref="infile1" label="Select target column(s):"/>
+        <param name="infile2" type="data" format="tabular" label="Dataset containing test labels:"/>
+        <param name="col2" multiple="False" type="data_column" data_ref="infile2" label="Select target column(s):"/>
+    </inputs>
+    <outputs>
+        <data format="tabular" name="output" />
+    </outputs>
+    <help><![CDATA[
+     Before we can make and evaluate predictions, we need to establish a baseline, 
+     a sensible measure that we hope to beat with our model. 
+     
+     If our model cannot improve upon the baseline, 
+     then it will be a failure and we should try a different model or admit that machine learning is not right for our problem.
+
+    ]]></help>
+</tool>

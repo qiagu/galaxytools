@@ -1,0 +1,38 @@
+<tool id="one_hot_encode" name="One-hot encode" version="0.1.0">
+    <description>data using pandas get_dummies</description>
+    <requirements>
+        <requirement type="package" version="0.22.0">pandas</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python "$one_hot_encode_script" "$input"
+    ]]></command>
+    <inputs>
+        <param name="input" type="data" label="Source file"/>
+         <section name="options" title="Options" expanded="False">
+            <param argument="prefix" type="text" optional="True" value="" label="Prefix:"/>
+            <param argument="prefix_sep" type="text" optional="True" value="_" label="Prefix separator:" help="If appending prefix, separator/delimiter to use. Or pass a list or dictionary as with prefix. Default='_'"/>
+            <param argument="dummy_na" type="boolean" optional="True" truevalue="booltrue" falsevalue="boolfalse" checked="False" label="Dummy_na:"/>
+            <param argument="columns" multiple="True" type="data_column" data_ref="input" optional="true" label="Columns:" help="Column names in the DataFrame to be encoded. If columns is None then all the columns with object or category dtype will be converted."/>
+            <param argument="sparse" type="boolean" optional="True" truevalue="booltrue" falsevalue="boolfalse" checked="False" label="Sparse:"/>
+            <param argument="drop_first" type="boolean" optional="True" truevalue="booltrue" falsevalue="boolfalse" checked="False" label="Drop first level:"/>
+        </section>    
+    </inputs>
+    <configfiles>
+        <configfile name="one_hot_encode_script">
+<![CDATA[
+import pandas
+features = pandas.read_csv("$input")
+features = pandas.get_dummies(features)
+features.to_csv(path_or_buf = "$output", sep="\t", index=False)
+]]>
+        </configfile>
+    </configfiles>
+    <outputs>
+        <data format="tabular" name="output" />
+    </outputs>
+    <help><![CDATA[
+        INPUT: CSV file
+
+        OUTPUT: a tabular file after one-hot encoding
+    ]]></help>
+</tool>

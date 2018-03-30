@@ -1,0 +1,133 @@
+<tool id="post_training_utilities" name="Post-training Utilities" version="0.1.0">
+    <description>for random forrest</description>
+    <requirements>
+        <requirement type="package" version="0.22.0">pandas</requirement>
+        <requirement type="package" version="1.9.2">numpy</requirement>
+    </requirements>
+    <command detect_errors="exit_code"><![CDATA[
+        python "$post_training_utilities_script" "$inputs" "$output"
+    ]]></command>
+    
+    <configfiles>
+        <inputs name="inputs"/>                
+        <configfile name="post_training_utilities_script">
+<![CDATA[
+import sys
+import json
+import pandas
+import numpy as np
+import pickle
+import logging
+
+logging.basicConfig(
+    filename = 'tool.log',
+    format = '%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+    level = logging.INFO
+)
+logger = logging.getLogger(__name__)
+
+input_json_path = sys.argv[1]
+params = json.load(open(input_json_path, "r"))
+logger.info(params)
+
+outfile=open("$output", "w")
+
+#####################################
+### Determine Performance Metrics
+#####################################
+#if $selected_tasks.selected_task == "metrics":
+has_header1= params["selected_tasks"]["has_header1"]
+if has_header1:
+    header='infer'
+else:
+    header=None
+f1 = pandas.read_csv("$infile1", 
+                    sep='\t', 
+                    header=header,
+                    index_col=None, 
+                    parse_dates=True, 
+                    encoding=None, 
+                    tupleize_cols=False )
+col1=params["selected_tasks"]["col1"]
+col1 = list(map(lambda x: x - 1, col1))
+predictions = f1.iloc[:,col1].values
+
+## get test labes
+has_header2= params["selected_tasks"]["has_header2"]
+if has_header2:
+    header='infer'
+else:
+    header=None
+f2 = pandas.read_csv("$infile2", 
+                    sep='\t', 
+                    header=header,
+                    index_col=None, 
+                    parse_dates=True, 
+                    encoding=None,
+                    tupleize_cols=False )
+col2=params["selected_tasks"]["col2"]
+col2 = list(map(lambda x: x - 1, col2))
+test_labels = f2.iloc[:,col2].values
+
+#calculate the errors
+errors = abs(predictions - test_labels)
+logger.info("Mean Absolute Error: %.2f degrees." % np.mean(errors))
+outfile.write("Mean Absolute Error: %.2f degrees.\n" % np.mean(errors))
+
+## Calculate mean absolute percentage error (MAPE) and display accuracy
+mape = 100 * (errors / test_labels.astype(float))
+accuracy = 100 - np.mean(mape)
+logger.info("Accuracy: %.2f%%." % accuracy)
+outfile.write("Accuracy: %.2f%%.\n" % accuracy)
+
+
+### Determine Variable Importances
+############################################
+
+#else if $selected_tasks.selected_task == "variable_importance":
+model = pickle.load(open("$selected_tasks.infile_model", 'r'))
+options = params["selected_tasks"]["options"]
+logger.info(options)
+
+#end if
+
+
+]]>
+        </configfile>
+    </configfiles>
+    <inputs>
+        <conditional name="selected_tasks">
+            <param name="selected_task" type="select" label="Select a Task">
+                <option value="metrics" selected="true">Determine Performance Metrics</option>
+                <option value="variable_importance">Determine Variable Importances</option>
+                <option value="visualize_tree">Visualize a Single Decision Tree</option>
+            </param>
+            <when value="metrics">
+                <param name="infile1" type="data" format="tabular" label="Dataset containing prediction labels:" />
+                <param name="has_header1" type="boolean" optional="True" truevalue="booltrue" falsevalue="boolfalse" checked="True" label="Does the dataset contain header:" />
+                <param name="col1" multiple="True" type="data_column" data_ref="infile1" label="Select target column(s):"/>
+                <param name="infile2" type="data" format="tabular" label="Dataset containing test labels:"/>
+                <param name="has_header2" type="boolean" optional="True" truevalue="booltrue" falsevalue="boolfalse" checked="True" label="Does the dataset contain header:" />
+                <param name="col2" multiple="True" type="data_column" data_ref="infile2" label="Select target column(s):"/>
+            </when>
+            <when value="variable_importance">
+                <param name="infile_model" type="data" format="zip" label="Models:" help="Select a model file." />
+                <section name="options" title="Optional" expanded="True">
+                    <param name="feature_list" type="text" value="" label="Customerize your feature names as a list below:" help="List of trings, comma delimited. White spaces between strings are OK. Leave blank if the following option is used. "/>
+                    <param name="infile1" type="data" optional="True" format="tabular" label="OR let Galaxy infer the feature names from a dataset:"/>
+                    <param name="col1" multiple="True" optional="True" type="data_column" data_ref="infile1" label="Select target column(s):"/>
+                </section>
+            </when>
+            <when value="visualize_tree">
+                <param name="infile_model" type="data" format="zip" label="Models:" help="Select a model file." />
+                <param name="estimators_num" argument="estimators_" type="integer" value="" label="Tree number:" />
+            </when>
+        </conditional>
+    </inputs>
+    <outputs>
+        <data format="tabular" name="output" />
+    </outputs>
+    <help><![CDATA[
+     TODO: help
+    ]]></help>
+</tool>

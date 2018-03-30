@@ -1,0 +1,206 @@
+<tool id="sklearn_model_selection" name="Model-selection" version="@VERSION@">
+    <description> Splitter Classes and Fuctions, Hyper-parameter optimizers and Model Validation</description>
+    <macros>
+        <import>main_macros.xml</import>
+    </macros>
+    <expand macro="python_requirements"/>
+    <expand macro="macro_stdio"/>
+    <version_command>echo "@VERSION@"</version_command>
+    <command>
+        <![CDATA[
+        python "$model_selection_script" '$inputs'
+        ]]>
+    </command>
+    <configfiles>
+        <inputs name="inputs" />
+        <configfile name="model_selection_script">
+            <![CDATA[
+import sys
+import json
+import pandas
+import numpy as np
+from sklearn import model_selection
+
+@COLUMNS_FUNCTION@
+
+input_json_path = sys.argv[1]
+params = json.load(open(input_json_path, "r"))
+"""
+header='infer' if params["clf_metrics"].get("header1", None) else None
+y_t = read_columns(
+        "$clf_metrics.infile1",
+        "$clf_metrics.col1",
+        sep='\t',
+        header=header,
+        parse_dates=True
+)
+
+header='infer' if params["clf_metrics"].get("header2", None) else None
+y_p = read_columns(
+        "$clf_metrics.infile2",
+        "$clf_metrics.col2",
+        sep='\t',
+        header=header,
+        parse_dates=True
+)
+
+options = params["clf_metrics"].get("options", {})
+print(options)
+if options and options.get('average', '') == 'None':
+    options['average'] = None
+metric = params["clf_metrics"]["selected_metric"]
+metric_function = getattr(metrics, metric)
+res = metric_function(y_t,y_p,**options)
+with open("$outfile", 'w+') as out_file:
+    out_file.write( metric + ' : ' + '\n' + str(res) + '\n' )
+"""
+            ]]>
+        </configfile>
+    </configfiles>
+    <inputs>
+        <conditional name="model_selection_subgroup">
+            <param name="selected_model_selection_subgroup" type="select" label="Select a model-selction subgroup">
+                <option value="splitter_classes" selected="true">Splitter Classes</option>
+                <option value="splitter_functions">Splitter Functions</option>
+                <option value="hyper_parameter_optimizers">Hyper-parameter optimizers</option>
+                <option value="model_validation">Model validation</option>
+            </param>
+            <when value="splitter_classes">
+                <param name="selected_splitter_class" type="select" label="Select a splitter classes">
+                    <option value="GroupKFold">K-fold iterator variant with non-overlapping groups</option>
+                    <option value="GroupShuffleSplit">Shuffle-Group(s)-Out cross-validation iterator</option>
+                    <option value="KFold">K-Folds cross-validator</option>
+                    <option value="LeaveOneGroupOut">Leave One Group Out cross-validator</option>
+                    <option value="LeavePGroupsOut">Leave P Group(s) Out cross-validator</option>
+                    <option value="LeaveOneOut">Leave-One-Out cross-validator</option>
+                    <option value="LeavePOut">Leave-P-Out cross-validator</option>
+                    <option value="PredefinedSplit">Predefined split cross-validator</option>
+                    <option value="RepeatedKFold">Repeated K-Fold cross validator</option>
+                    <option value="RepeatedStratifiedKFold">Repeated Stratified K-Fold cross validator</option>
+                    <option value="ShuffleSplit">Random permutation cross-validator</option>
+                    <option value="StratifiedKFold">Stratified K-Folds cross-validator</option>
+                    <option value="StratifiedShuffleSplit">Stratified ShuffleSplit cross-validator</option>
+                    <option value="TimeSeriesSplit">Time Series cross-validator</option>
+                </param>
+                <when value="GroupKFold">
+                    
+                </when>
+                <when value="GroupShuffleSplit">
+                </when>
+                <when value="KFold">
+                </when>
+                <when value="LeaveOneGroupOut">
+                </when>
+                <when value="LeavePGroupsOut">
+                </when>
+                <when value="LeaveOneOut">
+                </when>
+                <when value="LeavePOut">
+                </when>
+                <when value="PredefinedSplit">
+                </when>
+                <when value="RepeatedKFold">
+                </when>
+                <when value="RepeatedStratifiedKFold">
+                </when>
+                <when value="ShuffleSplit">
+                </when>
+                <when value="StratifiedKFold">
+                </when>
+                <when value="StratifiedShuffleSplit">
+                </when>
+                <when value="TimeSeriesSplit">
+                </when>
+            </when>
+            <when value="splitter_functions">
+                <conditional name="select_splitter_functions">
+                    <param name="selected_splitter_function" type="select" label="Select a splitter function">
+                        <option value="check_cv">Input checker utility for building a cross-validator</option>
+                        <option value="train_test_split">Split arrays or matrices into random train and test subsets</option>
+                    </param>
+                    <when value="check_cv">
+                        <section name="options" title="Advanced Options" expanded="False">
+                            <!--cv-->
+                            <!--y-->
+                            <param argument="classifier" type="boolean" optional="true" truevalue="booltrue" falsevalue="boolflase" checked="False"
+                                label="Classifier" help="Whether the task is a classification task, in which case stratified KFold will be used. "/>
+                        </section>                
+                    </when>
+                    <when value="train_test_split">
+                        <param name="input" type="data" format="tabular" label="Source file"/>
+                        <param name="col_label" multiple="False" type="data_column" data_ref="input" label="Select label column:"/>
+                        <section name="options" title="Options" expanded="True">
+                            <param argument="test_size" type="float" optional="True" value="0.25" label="Test size:"/>
+                            <param argument="train_size" type="float" optional="True" value="" label="Train size:"/>
+                            <param argument="random_state" type="integer" optional="True" value="" label="Random seed number:"/>
+                            <param argument="shuffle" type="boolean" optional="True" truevalue="booltrue" falsevalue="boolfalse" checked="True" label="Shuffle:" help="Whether or not to shuffle the data before splitting. If shuffle=False then stratify must be None."/>
+                            <param argument="stratify" type="integer" optional="True" value="" label="Stratify:"/>
+                        </section>                    
+                    </when>
+                </conditional>
+            </when>
+            <when value="hyper_parameter_optimizers">
+                <param name="selected_optimizer" type="select" label="Select a hyper-parameter optimizer">
+                    <option value="GridSearchCV">Exhaustive search over specified parameter values for an estimator</option>
+                    <option value="ParameterGrid">Grid of parameters with a discrete number of values for each</option>
+                    <option value="ParameterSampler">Generator on parameters sampled from given distributions</option>
+                    <option value="RandomizedSearchCV">Randomized search on hyper parameters</option>                    
+                </param>
+                <when value="GridSearchCV">
+                </when>
+                <when value="ParameterGrid">
+                </when>
+                <when value="ParameterSampler">
+                </when>
+                <when value="RandomizedSearchCV">
+                </when>
+            </when>
+            <when value="model_validation">
+                <param name="selected_model_validation" type="select" label="Select a model validation">
+                    <option value="cross_validate">Evaluate metric(s) by cross-validation and also record fit/score times</option>
+                    <option value="cross_val_predict">Generate cross-validated estimates for each input data point</option>
+                    <option value="cross_val_score">Evaluate a score by cross-validation</option>
+                    <option value="learning_curve">Learning curve</option>
+                    <option value="permutation_test_score">Evaluate the significance of a cross-validated score with permutations</option>
+                    <option value="validation_curve">Validation curve</option>                   
+                </param>
+                <when value="cross_validate">
+                </when>
+                <when value="cross_val_predict">
+                </when>
+                <when value="cross_val_score">
+                </when>
+                <when value="learning_curve">
+                </when>
+                <when value="permutation_test_score">
+                </when>
+                <when value="validation_curve">
+                </when>
+            </when>
+        </conditional>
+    </inputs>
+    <outputs>
+        <data format="txt" name="outfile"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="selected_metric" value="accuracy_score"/>
+            <param name="infile1" value="y.tabular" ftype="tabular"/>
+            <param name="col1" value="1"/>
+            <param name="infile2" value="y.tabular" ftype="tabular"/>
+            <param name="col2" value="2"/>
+            <output name="outfile" file="accuracy_score.txt"/>
+        </test>
+    </tests>
+    <help>
+        <![CDATA[
+**What it does**
+This tool provides several loss, score, and utility functions to measure classification performance. Some metrics might require probability estimates of the positive class, confidence values, or binary decisions values. This tool is based on
+sklearn.metrics package.
+For information about classification metric functions and their parameter settings please refer to `Scikit-learn classification metrics`_.
+
+.. _`Scikit-learn classification metrics`: http://scikit-learn.org/stable/modules/model_evaluation.html#classification-metrics
+        ]]>
+    </help>
+    <expand macro="sklearn_citation"/>
+</tool>
