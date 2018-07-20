@@ -106,27 +106,21 @@ def get_search_params(params_builder, in_pipeline=False):
 
   search_params = {}
 
-  if not in_pipeline:
-    for ep in params_builder['estimator_param_set']:
-      if ep['estimator_param'].strip() == '':
-        continue
-      lst = ep['estimator_param'].split(":")
-      assert (len(lst) == 2), "Error, make sure there is one and only one colon in search parameter input."
-      literal = lst[1].strip().replace("__sq__","'")\
-          .replace('__dq__','"').replace("__oc__", "{").replace("__cc__", "}")\
-          .replace("__ob__", "[").replace("__cb__", "]")
-      try:
-        ev = ast.literal_eval(literal)
-      except ValueError:
-        valid = ['np.', 'numpy.', 'scipy.']
-        for v in valid:
-          if literal.startswith(v):
-            ev = eval(literal)
-            break
-        else:
-          sys.exit("invalid search parameter input for %s" %ep['estimator_param'])
-      search_params[lst[0].strip()] = ev
-    return search_params
+  def in_whitelist(literal):
+    patterns = ['^(np|numpy|scipy)\.(random|stats)\.\w+\(.*\)$', '^(np|numpy)\.arange\([\s\d.,]*\)$' ]
+    for ptn in patterns:
+      if re.match(ptn, literal):
+        return True
+    sys.exit("The parameter input `%s` is not supported!" %literal)
+    
+
+  def in_blacklist(literal):
+    patterns = ['.*(import|subprocess|system|__).*']
+    for ptn in patterns:
+      if re.match(ptn, literal):
+        sys.exit("Invalid parameter input found in `%s`!" %literal)
+    else:
+      return False
 
   def add_pipeline_params(search_params, param_set, param_name, param_pre):
     for p in params_builder[param_set]:
@@ -134,20 +128,28 @@ def get_search_params(params_builder, in_pipeline=False):
         continue
       lst = p[param_name].split(":")
       assert (len(lst) == 2), "Error, make sure there is one and only one colon in search parameter input."
-      literal = lst[1].strip().replace("__sq__","'")\
-          .replace('__dq__','"').replace("__oc__", "{").replace("__cc__", "}")\
-          .replace("__ob__", "[").replace("__cb__", "]")
+      literal = lst[1].strip().replace("__sq__","'").replace("__ob__", "[").replace("__cb__", "]")
       try:
         ev = ast.literal_eval(literal)
       except ValueError:
-        valid = ['np.', 'numpy.', 'scipy.']
-        for v in valid:
-          if literal.startswith(v):
-            ev = eval(literal)
-            break
-        else:
-          sys.exit("invalid parameter input for %s" %p[param_name])
+        if in_whitelist(literal) and not in_blacklist(literal):
+          ev = eval(literal)
       search_params[param_pre + lst[0].strip()] = ev
+
+  if not in_pipeline:
+    for ep in params_builder['estimator_param_set']:
+      if ep['estimator_param'].strip() == '':
+        continue
+      lst = ep['estimator_param'].split(":")
+      assert (len(lst) == 2), "Error, make sure there is one and only one colon in search parameter input."
+      literal = lst[1].strip().replace("__sq__","'").replace("__ob__", "[").replace("__cb__", "]")
+      try:
+        ev = ast.literal_eval(literal)
+      except ValueError:
+        if in_whitelist(literal) and not in_blacklist(literal):
+          ev = eval(literal)
+      search_params[lst[0].strip()] = ev
+    return search_params
 
   add_pipeline_params(search_params, 'estimator_param_set', 'estimator_param', 'estimator__')
   add_pipeline_params(search_params, 'prep_param_set', 'prep_param', 'pre_processor__')
