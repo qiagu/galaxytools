@@ -1,0 +1,56 @@
+<tool id="collect_search_result" name="Collect Best SearchCV Parameters" version="0.1">
+	<description>to get best parameters from a collection of searchCV results</description>
+	<requirements>
+		<requirement type="package" version="3.6">python</requirement>
+		<requirement type="package" version="0.22.0">pandas</requirement>
+	</requirements>
+	<version_command>echo $version</version_command>
+	<command detect_errors="aggressive"><![CDATA[
+    python $script
+]]>
+	</command>
+	<configfiles>
+		<inputs name="inputs"/>
+    <configfile name="script"><![CDATA[
+import pandas
+
+reserve_columns = [x.strip() for x in '$reserve_columns'.split(',')]
+#if $label:
+labels = [x.strip() for x in '$label'.split(':')]
+label_dict = {}
+label_dict[labels[0]] = [labels[1]]
+label_df = pandas.DataFrame(data=label_dict)
+#end if
+
+new_df = None
+#for $table in $search_result_collection#
+id_df = pandas.DataFrame(data={'dataset_name': ['${table.element_identifier}']})
+df = pandas.read_csv('$table', sep='\t')
+#if $label:
+best_row = pandas.concat([label_df, df.loc[ df['$ranking']==1 ][:1][reserve_columns].reset_index(drop=True)], axis=1)
+#else:
+best_row = df.loc[ df['$ranking']==1 ][:1][reserve_columns].reset_index(drop=True)
+#end if
+best_row = pandas.concat([id_df, best_row], axis=1)
+
+if new_df is None:
+    new_df = best_row
+else:
+		new_df = new_df.append(best_row)
+#end for
+
+new_df.sort_values(by=['dataset_name']).to_csv(path_or_buf='$output_file', sep='\t', header=True, index=False)
+
+]]>
+    </configfile>
+	</configfiles>
+	<inputs>
+		<param name="search_result_collection" type="data_collection" collection_type="list" label="Choose the collection of SearchCV results:" />
+		<param name="ranking" type="text" value="" label="Type the header names of the column containing ranking:" help="For example: rank_test_accuracy" />
+		<param name="reserve_columns" type="text" value="" label="Type the header names of columns to be reserved:" help="For example: header1, header2" />
+		<param name="label" type="text" value="" optional="true" label="Type a label column, if any:" help="For example: classifier: SVC" />
+	</inputs>
+	<outputs>
+		<data name="output_file" format="tabular"/>
+	</outputs>
+</tool>
