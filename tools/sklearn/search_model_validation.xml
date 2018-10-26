@@ -216,11 +216,7 @@ with open(outfile_estimator, "wb") as output_handler:
             <param name="selected_search_scheme" value="RandomizedSearchCV"/>
             <param name="infile_pipeline" value="pipeline01" ftype="zip"/>
             <conditional name="search_param_selector">
-                <param name="search_p" value="C: [1, 10, 100, 1000]"/>
-                <param name="selected_param_type" value="final_estimator_p"/>
-            </conditional>
-            <conditional name="search_param_selector">
-                <param name="search_p" value="kernel: ['linear', 'poly', 'rbf', 'sigmoid']"/>
+                <param name="search_p" value="kernel: ['linear', 'poly', 'rbf', 'sigmoid']; C: [1, 10, 100, 1000]"/>
                 <param name="selected_param_type" value="final_estimator_p"/>
             </conditional>
             <conditional name="search_param_selector">
@@ -319,11 +315,7 @@ with open(outfile_estimator, "wb") as output_handler:
             <param name="selected_search_scheme" value="GridSearchCV"/>
             <param name="infile_pipeline" value="pipeline06" ftype="zip"/>
             <conditional name="search_param_selector">
-                <param name="search_p" value="n_estimators: [10, 50, 200, 1000]"/>
-                <param name="selected_param_type" value="final_estimator_p"/>
-            </conditional>
-            <conditional name="search_param_selector">
-                <param name="search_p" value="random_state: [324089]"/>
+                <param name="search_p" value="n_estimators: [10, 50, 200, 1000];&#10; random_state: [324089]&#10;"/>
                 <param name="selected_param_type" value="final_estimator_p"/>
             </conditional>
             <param name="infile1" value="regression_X.tabular" ftype="tabular"/>

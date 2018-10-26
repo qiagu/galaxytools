@@ -245,10 +245,12 @@ def get_search_params(params_builder):
     safe_eval = SafeEval(load_scipy=True, load_numpy=True)
     safe_eval_es = SafeEval(load_estimators=True)
 
-    for p in params_builder['param_set']:
-        search_p = p['search_param_selector']['search_p']
+    def parse_search_param(search_p):
+        """
+        search_p: single param setting for search. e.g., C: [3, 5, 7, 9]
+        """
         if search_p.strip() == '':
-            continue
+            return
         param_type = p['search_param_selector']['selected_param_type']
 
         lst = search_p.split(":")
@@ -343,6 +345,13 @@ def get_search_params(params_builder):
             search_params["preprocessing_" + param_type[5:6]] = newlist
         else:
             sys.exit("Parameter name of the final estimator can't be skipped!")
+
+    for p in params_builder['param_set']:
+        search_box = p['search_param_selector']['search_p']
+        search_box.replace("\n", "")
+        search_ps = search_box.split(";")
+        for search_p in search_ps:
+            parse_search_param(search_p.strip())
 
     return search_params
 
