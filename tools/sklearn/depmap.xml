@@ -1,0 +1,103 @@
+<tool id="depmap_rna_drug" name="Depmap Drug" version="0.1">
+  <description>response with RNA-seq data for machine learning ready</description>
+  <requirements>
+    <requirement type="package" version="3.6">python</requirement>
+    <requirement type="package" version="0.23.4">pandas</requirement>
+    <requirement type="package" version="1.15.3">numpy</requirement>
+  </requirements>
+  <stdio>
+      <exit_code range="1:" level="fatal" description="Error occurred. Please check Tool Standard Error"/>
+  </stdio>
+  <version_command>echo "$version"</version_command>
+  <command detect_errors="aggressive">
+      <![CDATA[
+      python "$depmap_drug_script" "$inputs"
+      ]]>
+  </command>
+  <configfiles>
+      <inputs name="inputs" />
+      <configfile name="depmap_drug_script">
+<![CDATA[
+import numpy as np
+import pandas as pd
+import re
+import sys
+
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.feature_selection import VarianceThreshold
+
+DRUG_RESPONSE_FILE = "$drug_response_file"
+METADATA_FILE = "$cellline_metadata_file"
+RNA_SEQ_EXPRESSION_FILE = "$rna_expression_file"
+SAMPLE_MINIMUM = $sample_minimum
+
+# drug response data
+drug_response_df = pd.read_csv(DRUG_RESPONSE_FILE, sep=',', index_col=0)
+column_rename = {'A253_UPPER_AERODIGESTIVE_TRACT': 'ACH-000740',
+                 'U698M_HAEMATOPOIETIC_AND_LYMPHOID_TISSUE': 'ACH-001680',
+                 'RPMI2650_UPPER_AERODIGESTIVE_TRACT': 'ACH-001385'}
+index_rename = {'VNLG/124': 'VNLG-124'}
+drug_response_df.rename(inplace=True, columns=column_rename, index=index_rename)
+drug_response_df = drug_response_df.T
+
+def get_id(s):
+    parts = re.split('\(|\)', s)
+    if len(parts) > 1:
+        return parts[1]
+    else:
+        return s
+
+drug_response_df.index = drug_response_df.index.map(get_id)
+
+# RNA-seq data
+rna_seq_df = pd.read_csv(RNA_SEQ_EXPRESSION_FILE, sep=',', index_col=0)
+if rna_seq_df.isnull().values.any():
+    sys.exit("The RNA-seq data contains nan values!")
+vt = VarianceThreshold()
+vt.fit(rna_seq_df)
+rna_seq_df = rna_seq_df.iloc[:, vt.get_support(indices=True)]
+
+# read the metadata file
+metadata_df = pd.read_csv(METADATA_FILE, sep=',', index_col=0)
+
+# if tissed quantile norm
+#if $quantile_norm == 'booltrue':
+tissue_df = metadata_df[['Primary Disease']]
+tissue_df.loc[:,'Primary Disease'] = tissue_df['Primary Disease'].apply(str.upper).values
+rna_seq_df_tissue = rna_seq_df.join(tissue_df)
+qt = QuantileTransformer()
+for tissue in rna_seq_df_tissue['Primary Disease'].unique():
+    tissue_portion = rna_seq_df_tissue[rna_seq_df_tissue['Primary Disease'] == tissue]
+    rna_seq_df.loc[tissue_portion.index, :] = qt.fit_transform(tissue_portion.iloc[:,:-1])
+#end if
+
+# combine rna-seq and drug response data
+for drug in drug_response_df.columns:
+    drug_df = drug_response_df[[drug]]
+    drug_df_nonan = drug_df[~drug_df[drug].isnull()]
+    drug_ready = rna_seq_df.join(drug_df_nonan, how='inner')
+    if drug_ready.shape[0] >= SAMPLE_MINIMUM:
+        drug_ready.to_csv(path_or_buf=drug.strip()+'.csv', sep='\t', header=True, index=False)
+
+]]>
+    </configfile>
+  </configfiles>
+  <inputs>
+    <param name="rna_expression_file" type="data" format="tabular,csv" label="Input the file from depmap containing RNA-seq expression data:"/>
+    <param name="drug_response_file" type="data" format="tabular,csv" label="Input the file from depmap containing drug reponse AUC data:"/>
+    <param name="cellline_metadata_file" type="data" format="tabular,csv" label="Input the file from depmap containing cell lines metadata:"/>
+    <param name="quantile_norm" type="boolean" optional="True" truevalue="booltrue" falsevalue="boolfalse" checked="False" label="Whether quantile normalized RAN-seq data based on tissue?"/>
+    <param name="sample_minimum" type="integer" value="100" min="100" max="1000" label="Choose the minimum number of cell line samples in the output:"/>
+  </inputs>
+  <outputs>
+    <collection name="output" type="list" label="Depmap drug rna-seq ready">
+      <discover_datasets pattern="__name__" format="tabular" visible="false"/>
+    </collection>
+  </outputs>
+  <tests>
+    <test/>
+  </tests>
+  <help/>
+  <citations>
+  </citations>
+</tool>
